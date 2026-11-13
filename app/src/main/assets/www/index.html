@@ -72,6 +72,16 @@ nav button.active{color:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#262b3f;border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:14px;z-index:9;max-width:90vw;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .hidden{display:none!important}
+.seg{display:flex;gap:8px;margin:0 0 12px}
+.seg button{flex:1;flex-direction:column;gap:0;padding:10px;min-height:56px;line-height:1.2}
+.seg button small{font-weight:400;font-size:12px;color:var(--muted)}
+.seg button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:#2a1f24}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.sentence{font-size:22px;line-height:1.45;font-weight:600;background:var(--panel2);border-radius:14px;padding:18px 16px;margin:8px 0;min-height:120px;display:flex;align-items:center}
+.okc{color:var(--ok)!important}
+.url{font-size:12px;word-break:break-all;color:var(--muted);background:var(--panel2);padding:8px;border-radius:8px;margin:6px 0}
+ol.plain{padding-left:20px;margin:6px 0;color:var(--muted);font-size:14px}
+ol.plain li{margin:6px 0}
 html.native .web-only{display:none!important}
 html.native body{padding-top:0}
 select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px}
@@ -92,13 +102,17 @@ a{color:var(--accent)}
     <div id="onboard" class="card">
       <h2>Get started</h2>
       <ol class="steps">
-        <li id="st1">Download the voice engine once (~150 MB, then it works offline)</li>
-        <li id="st2">Record 10 seconds of your voice</li>
+        <li id="st1">Quick option: start the clone engine (Engine tab, ~150 MB once)</li>
+        <li id="st2">Record your voice — 10 s for a quick clone, or ~10 min in Train for your own model</li>
         <li id="st3">Paste your script and tap Generate</li>
       </ol>
     </div>
 
     <div class="card">
+      <div class="seg">
+        <button id="engMine"><span>⭐ My model</span><small>not trained yet</small></button>
+        <button id="engClone"><span>⚡ Quick clone</span><small>from 10 s sample</small></button>
+      </div>
       <div class="row" style="margin-bottom:8px">
         <h2 class="grow" style="margin:0">Script</h2>
         <span class="meta" id="voiceUsing">No voice yet</span>
@@ -107,6 +121,10 @@ a{color:var(--accent)}
       <div class="row meta" style="margin-top:6px">
         <span id="count" class="grow">0 words</span>
         <button class="small" id="clearBtn">Clear</button>
+      </div>
+      <div id="speedRow" class="hidden" style="margin-top:10px">
+        <div class="row meta"><span class="grow">Speed</span><span id="speedVal">1.00×</span></div>
+        <input type="range" id="speed" min="0.75" max="1.35" step="0.05" value="1">
       </div>
       <label class="row meta" style="margin:10px 0 2px"><input type="checkbox" id="livePlay" checked> Play while generating</label>
       <div id="genProgress" class="hidden">
@@ -122,10 +140,62 @@ a{color:var(--accent)}
     <div id="lastResult"></div>
   </section>
 
+  <!-- ============ TRAIN ============ -->
+  <section id="view-train" class="view">
+    <div class="card">
+      <h2>⭐ Your own voice model</h2>
+      <div class="meta" id="modelStatus">No model yet.</div>
+      <div class="row" style="margin-top:12px">
+        <label class="btn grow small" for="modelInput">⬆ Import my model (.onnx + .json)</label>
+        <input type="file" id="modelInput" multiple class="hidden">
+        <button class="small danger hidden" id="modelDelete">Delete model</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1 · Record sentences</h2>
+      <p>Read each sentence naturally, in the voice you want for your videos. Quiet room, same spot, phone about 15–20 cm away. You can stop any time — progress is saved.</p>
+      <div class="bar"><i id="trProgress"></i></div>
+      <div class="meta" id="trCount"></div>
+      <div class="meta" id="trTip" style="margin-top:2px"></div>
+      <div class="row" style="margin-top:12px"><span class="meta grow" id="trNum"></span><span class="meta" id="trState"></span></div>
+      <div class="sentence" id="trText"></div>
+      <div class="level"><i id="trLevel"></i></div>
+      <div class="row" style="margin-top:12px;justify-content:center">
+        <button class="small" id="trPrev">◀</button>
+        <button class="small" id="trPlay">▶ Play</button>
+        <button class="mic" id="trRec" style="width:76px;height:76px;margin:0 6px;font-size:28px" aria-label="Record">🎙</button>
+        <button class="small" id="trSkip">Skip</button>
+        <button class="small" id="trNext">▶▶</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Export</h2>
+      <p>Packs your recordings into <b>myvoice-dataset.zip</b> in Downloads/MyVoice.</p>
+      <button class="primary full" id="exportBtn">📦 Export recordings</button>
+      <div class="meta" id="exportInfo" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>3 · Train on Google Colab (free)</h2>
+      <ol class="plain" id="trainSteps">
+        <li>Upload <b>myvoice-dataset.zip</b> to Google Drive into a folder named <b>MyVoice</b>.</li>
+        <li>Open the training notebook (works in your phone's browser too):
+          <div class="url" id="colabUrl"></div>
+          <div class="row"><a class="btn small grow" id="colabLink">Open in Colab</a><button class="small grow" id="copyColab">Copy link</button></div>
+        </li>
+        <li>Runtime → Change runtime type → <b>T4 GPU</b>, then Runtime → <b>Run all</b>. Takes about 1–3 hours. Keep the Colab tab open; if it disconnects, tap Run all again and it carries on from the last save.</li>
+        <li>When done, <b>my_voice.onnx</b> and <b>my_voice.onnx.json</b> are in Drive → MyVoice. Tap <b>Import my model</b> above and pick both.</li>
+      </ol>
+    </div>
+    <p class="note">Your recordings and model stay on your phone and your own Google Drive.</p>
+  </section>
+
   <!-- ============ VOICES ============ -->
   <section id="view-voices" class="view">
     <div class="card">
-      <h2>Record your voice</h2>
+      <h2>Quick clone: record 10 seconds</h2>
       <p>Quiet room, phone about a hand's width from your mouth. Read the text below in your normal speaking style. Recording stops by itself after 12 seconds.</p>
       <div class="passage" id="passage">Hi, this is my voice. I'm recording a short sample so this app can learn how I sound. I speak clearly, at my usual pace, the same way I'd explain something to a friend over coffee.</div>
       <button class="mic" id="micBtn" aria-label="Record">🎙</button>
@@ -203,7 +273,8 @@ a{color:var(--accent)}
 
 <nav>
   <button data-view="speak" class="active"><b>✎</b>Speak</button>
-  <button data-view="voices"><b>🎙</b>My voice</button>
+  <button data-view="train"><b>⭐</b>Train</button>
+  <button data-view="voices"><b>🎙</b>Clone</button>
   <button data-view="takes"><b>♫</b>Takes</button>
   <button data-view="engine"><b>⚙</b>Engine</button>
 </nav>

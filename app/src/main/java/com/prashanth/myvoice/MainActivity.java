@@ -44,6 +44,8 @@ public class MainActivity extends Activity {
     private static final int REQ_FILE = 2;
 
     private WebView web;
+    private Uri bigUri;
+    private OutputStream bigOut;
     private PermissionRequest pendingPermission;
     private ValueCallback<Uri[]> fileCallback;
 
@@ -219,6 +221,55 @@ public class MainActivity extends Activity {
             }
         }
 
+        // Chunked writes for big files (training dataset zip): begin -> append* -> end.
+        @JavascriptInterface
+        public String beginFile(String fileName, String mime) {
+            try {
+                closeBigFile();
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MyVoice");
+                bigUri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (bigUri == null) return "could not create file";
+                bigOut = getContentResolver().openOutputStream(bigUri);
+                return bigOut != null ? "ok" : "could not open file";
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+
+        @JavascriptInterface
+        public String appendFile(String base64) {
+            try {
+                bigOut.write(Base64.decode(base64, Base64.DEFAULT));
+                return "ok";
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+
+        @JavascriptInterface
+        public String endFile() {
+            try {
+                closeBigFile();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                        "Saved to Downloads/MyVoice", Toast.LENGTH_SHORT).show());
+                return "ok";
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+
+        @JavascriptInterface
+        public void copyText(String text) {
+            runOnUiThread(() -> {
+                android.content.ClipboardManager cm =
+                        (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("link", text));
+            });
+        }
+
         @JavascriptInterface
         public void keepAwake(boolean on) {
             runOnUiThread(() -> {
@@ -232,6 +283,15 @@ public class MainActivity extends Activity {
             try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
             catch (Exception e) { return "?"; }
         }
+    }
+
+    private void closeBigFile() throws java.io.IOException {
+        if (bigOut != null) {
+            bigOut.flush();
+            bigOut.close();
+            bigOut = null;
+        }
+        bigUri = null;
     }
 
     private Uri writeToDownloads(String base64, String fileName) throws Exception {

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f111a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>My Voice</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#0f111a; --panel:#171a26; --panel2:#1e2232; --line:#2a2f44;
+  --text:#eef0f7; --muted:#9aa1b9; --accent:#ff7a45; --accent2:#7c3aed;
+  --ok:#3ecf8e; --warn:#f5b84a; --bad:#ff5d6c; --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior-y:contain}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(76px + env(safe-area-inset-bottom)) env(safe-area-inset-left);min-height:100dvh}
+header{display:flex;align-items:center;gap:10px;padding:14px 16px 6px}
+header img{width:34px;height:34px;border-radius:10px}
+header h1{font-size:20px;margin:0;flex:1;letter-spacing:-.01em}
+.pill{font-size:12px;padding:5px 10px;border-radius:99px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:#285b46}
+.pill.warn{color:var(--warn);border-color:#5d4a22}
+main{padding:6px 14px 20px;max-width:720px;margin:0 auto}
+section.view{display:none}
+section.view.active{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:12px 0}
+.card h2{font-size:16px;margin:0 0 6px}
+.card p{margin:4px 0 10px;color:var(--muted);font-size:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+button,.btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font:600 15px system-ui,sans-serif;color:#fff;background:var(--panel2);border:1px solid var(--line);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;user-select:none;touch-action:manipulation;min-height:46px}
+button.primary{background:linear-gradient(135deg,var(--accent),#ff4f7b);border:0}
+button.danger{color:var(--bad)}
+button.small{padding:8px 12px;min-height:38px;font-size:14px}
+button:disabled{opacity:.45}
+button:active:not(:disabled){transform:scale(.98)}
+.full{width:100%}
+textarea,input[type=text]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;font:16px/1.5 system-ui,sans-serif;outline:none}
+textarea{min-height:42vh;resize:vertical}
+textarea:focus,input:focus{border-color:var(--accent)}
+.meta{font-size:13px;color:var(--muted)}
+.bar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s}
+.steps{counter-reset:s;list-style:none;padding:0;margin:8px 0 0}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;margin:8px 0;color:var(--muted);font-size:14px}
+.steps li::before{content:counter(s);flex:none;width:24px;height:24px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--text)}
+.steps li.done::before{content:"✓";background:#1d3b30;border-color:#285b46;color:var(--ok)}
+.voice{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;margin:8px 0;background:var(--panel2)}
+.voice.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.voice .name{font-weight:600}
+.radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:none}
+.voice.sel .radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 45%,transparent 50%)}
+.passage{background:var(--panel2);border-left:3px solid var(--accent);padding:12px 14px;border-radius:10px;font-size:17px;line-height:1.6;margin:10px 0}
+.mic{width:96px;height:96px;border-radius:50%;margin:8px auto;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),#ff4f7b);border:0;font-size:34px}
+.mic.rec{background:var(--bad);animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,108,.6)}100%{box-shadow:0 0 0 22px rgba(255,93,108,0)}}
+.timer{text-align:center;font:700 28px ui-monospace,monospace;margin:4px 0}
+.level{height:6px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.level>i{display:block;height:100%;width:0;background:var(--ok);transition:width .05s}
+audio{width:100%;margin:8px 0;height:44px}
+.take{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;background:var(--panel2)}
+.take .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(15,17,26,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;border:0;border-radius:0;color:var(--muted);flex-direction:column;gap:2px;font-size:12px;min-height:62px}
+nav button b{font-size:20px;font-weight:400}
+nav button.active{color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#262b3f;border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:14px;z-index:9;max-width:90vw;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.hidden{display:none!important}
+html.native .web-only{display:none!important}
+html.native body{padding-top:0}
+select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <img src="icons/icon-192.png" alt="">
+  <h1>My Voice</h1>
+  <span id="enginePill" class="pill">Engine off</span>
+</header>
+
+<main>
+  <!-- ============ SPEAK ============ -->
+  <section id="view-speak" class="view active">
+    <div id="onboard" class="card">
+      <h2>Get started</h2>
+      <ol class="steps">
+        <li id="st1">Download the voice engine once (~150 MB, then it works offline)</li>
+        <li id="st2">Record 10 seconds of your voice</li>
+        <li id="st3">Paste your script and tap Generate</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <h2 class="grow" style="margin:0">Script</h2>
+        <span class="meta" id="voiceUsing">No voice yet</span>
+      </div>
+      <textarea id="script" placeholder="Paste or type your script here.&#10;&#10;Leave a blank line between paragraphs for a natural pause."></textarea>
+      <div class="row meta" style="margin-top:6px">
+        <span id="count" class="grow">0 words</span>
+        <button class="small" id="clearBtn">Clear</button>
+      </div>
+      <label class="row meta" style="margin:10px 0 2px"><input type="checkbox" id="livePlay" checked> Play while generating</label>
+      <div id="genProgress" class="hidden">
+        <div class="bar"><i id="genBar"></i></div>
+        <div class="meta" id="genStatus"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary grow" id="genBtn">▶ Generate in my voice</button>
+        <button class="danger hidden" id="stopBtn">■ Stop</button>
+      </div>
+    </div>
+
+    <div id="lastResult"></div>
+  </section>
+
+  <!-- ============ VOICES ============ -->
+  <section id="view-voices" class="view">
+    <div class="card">
+      <h2>Record your voice</h2>
+      <p>Quiet room, phone about a hand's width from your mouth. Read the text below in your normal speaking style. Recording stops by itself after 12 seconds.</p>
+      <div class="passage" id="passage">Hi, this is my voice. I'm recording a short sample so this app can learn how I sound. I speak clearly, at my usual pace, the same way I'd explain something to a friend over coffee.</div>
+      <button class="mic" id="micBtn" aria-label="Record">🎙</button>
+      <div class="timer" id="recTimer">0.0 s</div>
+      <div class="level"><i id="recLevel"></i></div>
+      <div class="row" style="margin-top:12px">
+        <label class="btn grow small" for="uploadInput">⬆ Or upload a clip</label>
+        <input type="file" id="uploadInput" accept="audio/*" class="hidden">
+      </div>
+      <div id="reviewBox" class="hidden" style="margin-top:12px">
+        <div class="meta" id="reviewInfo"></div>
+        <audio id="reviewAudio" controls></audio>
+        <input type="text" id="voiceName" placeholder="Name this voice (e.g. Me – calm)" maxlength="40">
+        <div class="row" style="margin-top:10px">
+          <button class="grow" id="discardBtn">Discard</button>
+          <button class="primary grow" id="saveVoiceBtn">Save voice</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Saved voices</h2>
+      <p>Tap one to use it for your scripts.</p>
+      <div id="voiceList"></div>
+    </div>
+    <p class="note">Only clone your own voice, or someone's voice with their clear permission. The Pocket TTS model licence forbids impersonation.</p>
+  </section>
+
+  <!-- ============ TAKES ============ -->
+  <section id="view-takes" class="view">
+    <div class="card">
+      <h2>Your takes</h2>
+      <p>Every generated script is kept here on your phone (last 30).</p>
+      <div id="takeList"></div>
+    </div>
+  </section>
+
+  <!-- ============ ENGINE ============ -->
+  <section id="view-engine" class="view">
+    <div class="card">
+      <h2>Voice engine</h2>
+      <p>Runs Kyutai's Pocket TTS fully on your phone. Downloaded once, then cached, so generation works in airplane mode.</p>
+      <div class="row">
+        <label class="meta grow">Quality
+          <select id="quality" style="display:block;margin-top:4px;width:100%">
+            <option value="int8">Fast (INT8, ~150 MB) – recommended</option>
+            <option value="fp32">Best (full precision, larger, slower)</option>
+          </select>
+        </label>
+      </div>
+      <div id="dlBox" class="hidden">
+        <div class="bar"><i id="dlBar"></i></div>
+        <div class="meta" id="dlStatus"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary grow" id="loadBtn">Download &amp; start engine</button>
+      </div>
+      <div class="meta" id="engineInfo" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2>Storage</h2>
+      <div class="meta" id="storageInfo">–</div>
+      <div class="row" style="margin-top:10px">
+        <button class="danger small" id="clearCacheBtn">Delete downloaded engine</button>
+      </div>
+    </div>
+    <div class="card web-only">
+      <h2>Install on your phone</h2>
+      <p>In Chrome: ⋮ menu → <b>Add to Home screen</b> → <b>Install</b>. In Samsung Internet: ☰ → <b>Add page to</b> → <b>Home screen</b>. It then opens like a normal app.</p>
+      <button class="full hidden" id="installBtn">⬇ Install app</button>
+    </div>
+    <p class="note">English scripts work best. Model weights © Kyutai, CC-BY-4.0. Engine: pocket-tts-js (MIT) + ONNX Runtime Web (MIT).</p>
+  </section>
+</main>
+
+<nav>
+  <button data-view="speak" class="active"><b>✎</b>Speak</button>
+  <button data-view="voices"><b>🎙</b>My voice</button>
+  <button data-view="takes"><b>♫</b>Takes</button>
+  <button data-view="engine"><b>⚙</b>Engine</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

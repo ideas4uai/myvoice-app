@@ -1,0 +1,39 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.prashanth.myvoice'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.prashanth.myvoice'
+        minSdk 30
+        targetSdk 35
+        versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int)
+        versionName "1.0." + (System.getenv('GITHUB_RUN_NUMBER') ?: '0')
+    }
+
+    signingConfigs {
+        // Fixed personal key so every new build installs as an update (keeps your voices & takes).
+        release {
+            storeFile file('myvoice.jks')
+            storePassword 'myvoice123'
+            keyAlias 'myvoice'
+            keyPassword 'myvoice123'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug { signingConfig signingConfigs.release }
+    }
+
+    androidResources { noCompress "wasm" }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
